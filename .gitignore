@@ -1,0 +1,5 @@
+out/
+backend/target/
+frontend/node_modules/
+*.class
+.idea/
