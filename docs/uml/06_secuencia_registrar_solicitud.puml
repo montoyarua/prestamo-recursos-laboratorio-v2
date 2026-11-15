@@ -1,0 +1,62 @@
+@startuml
+title Diagrama de secuencia UML: registrar solicitud (HU-02 y HU-03)
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam ArrowColor #1F3864
+skinparam NodeBorderColor #1F3864
+skinparam NodeBackgroundColor #F2F2F2
+skinparam ArtifactBorderColor #1F3864
+skinparam NoteBackgroundColor #FFF9DB
+skinparam NoteBorderColor #BF9000
+skinparam SequenceLifeLineBorderColor #1F3864
+skinparam ParticipantBorderColor #1F3864
+skinparam ParticipantBackgroundColor #F2F2F2
+autonumber
+actor "Estudiante / Docente" as U
+participant "Interfaz Web" as W
+participant "FiltroAutenticacion\n(Spring, Bearer)" as F
+participant "SolicitudesRest\n(@RestController)" as C
+participant "SolicitudesTransaccionales\n(transacción PostgreSQL)" as T
+participant "SolicitudServiceProxy" as P
+participant "UsuarioService\n(AutorizacionPort)" as A
+participant "SolicitudService" as S
+participant "Cadena de validadores\nCampos→Horario→Conflicto\nRecurso→Conflicto Usuario" as V
+participant "DisponibilidadService" as D
+participant "SolicitudRepository\n(Spring JDBC)" as R
+
+U -> W : completa recurso, fecha, horario, motivo
+W -> F : POST /api/solicitudes
+F -> F : usuarioDe(token)
+alt token inválido
+  F --> W : 401 «Debe iniciar sesión»
+else sesión válida
+  F -> C : POST /api/solicitudes
+  C -> C : convierte a NuevaSolicitud
+  C -> T : registrarSolicitud(actor, datos)
+  T -> T : BEGIN · pg_advisory_xact_lock (RNF-05)
+  T -> P : registrarSolicitud(actor, datos)
+  P -> A : tienePermiso(actor, REGISTRAR_SOLICITUD)
+  A --> P : true
+  P -> S : registrarSolicitud(actor, datos)
+  S -> V : validar(solicitud)
+  V -> V : ValidadorCampos
+  alt campo obligatorio vacío (HU-02 Esc. 2)
+    V --> W : 400 «Faltan campos obligatorios: …»
+  else fecha pasada o fin ≤ inicio (HU-02 Esc. 3)
+    V --> W : 400 «El horario no es válido …»
+  else cruce con reserva aprobada o préstamo sin devolver
+    V -> D : recursoOcupado(…) → true
+    V --> W : 409 «El recurso no está disponible en ese horario»
+  else el usuario ya tiene una reserva aprobada que se cruza
+    V -> D : usuarioOcupado(…) → true
+    V --> W : 409 «El usuario ya tiene una reserva …» (HU-03 Esc. 3)
+  else todas las reglas se cumplen
+    V -> D : recursoOcupado(…) → false
+    V -> D : usuarioOcupado(…) → false
+    V --> S : ok
+    S -> R : guardar(solicitud)   «estado Pendiente»
+    S --> W : 200 solicitud «Pendiente» (HU-02 Esc. 1)
+  end
+end
+T -> T : COMMIT (ROLLBACK si hubo error)
+@enduml

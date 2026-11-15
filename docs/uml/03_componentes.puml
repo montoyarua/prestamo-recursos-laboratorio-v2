@@ -1,0 +1,54 @@
+@startuml
+title Diagrama de componentes UML: Backend/API del MVP (refina el C4 nivel 3)
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam ArrowColor #1F3864
+skinparam ComponentBorderColor #1F3864
+skinparam ComponentBackgroundColor #F2F2F2
+skinparam InterfaceBackgroundColor #FFFFFF
+skinparam InterfaceBorderColor #1F3864
+skinparam PackageBorderColor #1F3864
+skinparam ArrowFontSize 11
+skinparam nodesep 40
+skinparam ranksep 70
+
+component "Aplicación web\nReact (SPA)" as WEB
+
+package "Backend/API (Java 21, Spring Boot)" {
+  component "Autenticación y Autorización\nSesionService · FiltroAutenticacion" as AUT
+  component "Controladores REST\n6 clases *Rest (@RestController)" as CTL
+  component "Gestión de Usuarios\nUsuarioService · Contrasenas" as USU
+  component "Gestión de Inventario\nRecursoService · RecursoCreator" as INV
+  component "Gestión de Solicitudes\nSolicitudService · Proxy\nValidadores · Observadores\nSolicitudesTransaccionales" as SOL
+  component "Gestión de Préstamos\nPrestamoService · Proxy\nPrestamosTransaccionales" as PRE
+  component "Consulta de Disponibilidad\nDisponibilidadService" as DIS
+  component "Notificaciones\nNotificacionService" as NOT
+  component "Repositorios\n5 repositorios · TablasJdbc\n(Spring JDBC)" as REP
+}
+database "PostgreSQL 16\n(restricción de exclusión)" as BD
+
+WEB --( "API REST /api" : HTTP/JSON
+CTL -up- "API REST /api"
+CTL --> AUT : valida token
+AUT --> USU : autenticar
+CTL --> USU : registrarUsuario
+CTL --> INV : RecursoService
+CTL --> SOL : SolicitudOperaciones
+CTL --> PRE : PrestamoOperaciones
+CTL --> NOT : consultar avisos
+INV --> DIS : DisponibilidadPort\nRecursosVigentesPort
+INV --> USU : AutorizacionPort
+SOL --> DIS : DisponibilidadPort
+SOL --> USU : AutorizacionPort
+SOL --> PRE : PrestamoPort
+SOL --> NOT : NotificacionPort
+PRE --> USU : AutorizacionPort
+DIS --> PRE : préstamos activos
+SOL --> REP
+INV --> REP
+DIS --> REP
+PRE --> REP
+NOT --> REP
+USU --> REP
+REP --> BD : JDBC
+@enduml

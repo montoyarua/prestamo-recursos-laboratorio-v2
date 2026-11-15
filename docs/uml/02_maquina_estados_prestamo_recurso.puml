@@ -1,0 +1,29 @@
+@startuml
+title Máquinas de estados UML complementarias: Préstamo (HU-05, HU-08) y Recurso (HU-06, HU-08)
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam ArrowColor #1F3864
+skinparam StateBorderColor #1F3864
+skinparam StateBackgroundColor #F2F2F2
+skinparam NoteBackgroundColor #FFF9DB
+skinparam NoteBorderColor #BF9000
+hide empty description
+
+state "Préstamo" as P {
+  [*] --> Activo : solicitud aprobada\n/ crearPrestamo()\nfechaCreacion = ahora
+  Activo --> Finalizado : registrarDevolucion(encargado)\n[rol con permiso]\n/ fechaDevolucion = ahora
+  Activo : Aparece en «Préstamos activos» (HU-08)\ny en «Mis préstamos» como Activo (HU-05)
+  Finalizado : registrarDevolucion() → PrestamoYaFinalizadoException\n(HU-08 Esc. 2: «el recurso ya fue devuelto»)
+  Finalizado --> [*]
+}
+
+state "Recurso" as R {
+  [*] --> Disponible : registrarRecurso(encargado)\n(Factory Method)
+  Disponible --> Prestado : crearPrestamo()\n/ marcarPrestado()
+  Prestado --> Disponible : registrarDevolucion()\n[no quedan préstamos activos del recurso]\n/ marcarDisponible()
+  Prestado --> Prestado : registrarDevolucion()\n[aún hay otro préstamo activo]
+  Disponible --> [*] : eliminarRecurso(encargado)\n[sin solicitudes pendientes o aprobadas ni préstamos activos (RN-06)]
+  Prestado : eliminarRecurso() → RecursoConSolicitudesVigentesException
+}
+P -[hidden]right-> R
+@enduml

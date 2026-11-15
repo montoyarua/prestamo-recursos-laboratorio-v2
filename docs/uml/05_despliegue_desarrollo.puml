@@ -1,0 +1,32 @@
+@startuml
+title Diagrama de despliegue UML: entorno de desarrollo
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam ArrowColor #1F3864
+skinparam NodeBorderColor #1F3864
+skinparam NodeBackgroundColor #F2F2F2
+skinparam ArtifactBorderColor #1F3864
+skinparam NoteBackgroundColor #FFF9DB
+skinparam NoteBorderColor #BF9000
+node "Equipo de desarrollo\n«device»" as D1 {
+  node "Navegador web\n«execution environment»" as NAV {
+    artifact "Aplicación React\n(http://localhost:5173)" as A1
+  }
+  node "Node.js 20\n«execution environment»" as NODE {
+    artifact "Servidor de desarrollo Vite\n(npm run dev)" as A5
+  }
+  node "JVM — JDK 21\n«execution environment»" as JVM {
+    artifact "Backend/API (Spring Boot)\n(mvn spring-boot:run)" as A2
+  }
+  node "PostgreSQL 16 (Docker o instalado)\n«execution environment»" as PG {
+    artifact "Base «prestamos»" as A4
+  }
+}
+A1 -right- A5 : <<HTTP>>
+A5 -right- A2 : <<proxy /api>>\nlocalhost:8080
+A2 -down- A4 : <<JDBC>>
+note bottom of D1
+  Despliegue de desarrollo: Vite reenvía las llamadas /api al backend. Para producción se usa el .jar con la interfaz
+  compilada (npm run build la deja en backend/src/main/resources/static).
+end note
+@enduml
