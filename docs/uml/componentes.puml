@@ -1,0 +1,84 @@
+@startuml
+title Diagrama de componentes UML — contenedor Backend/API (Spring Boot)
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam componentStyle uml2
+skinparam ArrowColor #1F3864
+skinparam ComponentBorderColor #1F3864
+skinparam ComponentBackgroundColor #EEF3FB
+skinparam InterfaceBorderColor #1F3864
+skinparam InterfaceBackgroundColor #FFFFFF
+skinparam nodesep 40
+skinparam ranksep 50
+
+component "Aplicación web\n(React 18 SPA)" <<component>> as WEB
+interface "IApiREST" as IAPI
+component "PostgreSQL 16" <<component>> as PG
+interface "JDBC" as IJDBC
+
+component "Backend/API" <<component>> as BACK {
+  portin "pAPI" as pAPI
+  portout "pBD" as pBD
+  component "Autenticación\n(FiltroAutenticacion,\nSesionService)" <<component>> as AUT
+  component "Controladores REST\n(*Rest, ManejadorErrores)" <<component>> as API
+  component "Gestión de\nSolicitudes" <<component>> as SOL
+  component "Gestión de\nPréstamos" <<component>> as PRE
+  component "Gestión de\nInventario" <<component>> as INV
+  component "Gestión de\nUsuarios" <<component>> as USU
+  component "Disponibilidad" <<component>> as DIS
+  component "Notificaciones" <<component>> as NOT
+  component "Persistencia\n(Tablas JDBC +\ntransacciones)" <<component>> as PER
+
+  interface "SolicitudOperaciones" as ISOL
+  interface "PrestamoOperaciones" as IPOP
+  interface "AutorizacionPort" as IAUT
+  interface "DisponibilidadPort" as IDIS
+  interface "RecursosVigentesPort" as IVIG
+  interface "PrestamoPort" as IPRE
+  interface "NotificacionPort" as INOT
+  interface "Tablas / Atomicidad" as ITAB
+}
+
+WEB -right-( IAPI
+IAPI -down- pAPI
+pAPI ..> AUT : <<delegate>>
+AUT ..> API : <<delegate>>\n(actor autenticado)
+
+SOL -up- ISOL
+PRE -up- IPOP
+PRE -up- IPRE
+USU -up- IAUT
+DIS -up- IDIS
+DIS -up- IVIG
+NOT -up- INOT
+SOL -down-( ITAB : (y los demás\nservicios)
+
+API -down-( ISOL
+API -down-( IPOP
+SOL -down-( IAUT : Proxy
+SOL -down-( IDIS : cadenas de\nvalidadores
+SOL -down-( IPRE : Observer
+SOL -down-( INOT : Observer
+PRE -down-( IAUT : Proxy
+INV -down-( IAUT
+INV -down-( IVIG : RN-06
+INV -down-( IDIS : HU-01
+
+PER -up- ITAB
+PER ..> pBD : <<delegate>>
+pBD -down-( IJDBC
+PG -up- IJDBC
+
+API ..> INV : <<use>>
+API ..> USU : <<use>>
+API ..> NOT : <<use>>
+DIS ..> PRE : <<use>>
+
+legend bottom
+  Bolita = interfaz proporcionada · media luna = interfaz requerida · línea entre ambas = conector de ensamblaje.
+  Cuadros en el borde (pAPI, pBD) = puertos · «delegate» = conector de delegación · «use» = dependencia directa.
+  IApiREST = HTTP + JSON en /api/* con el token de sesión en «Authorization: Bearer».
+  Préstamos, Inventario, Usuarios y Notificaciones también requieren Tablas / Atomicidad; esas conexiones se omiten para que el diagrama se lea.
+  Las interfaces son las de los paquetes co.itm.prestamo.puertos, solicitudes, prestamos y persistencia (DIP / ISP).
+endlegend
+@enduml

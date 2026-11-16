@@ -1,0 +1,40 @@
+@startuml
+title Diagrama de despliegue — nivel de especificación (arquitectura objetivo, C4 nivel 2)
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam ArrowColor #1F3864
+skinparam NodeBorderColor #1F3864
+skinparam NodeBackgroundColor #F4F7FC
+skinparam ArtifactBackgroundColor #FFFFFF
+skinparam ArtifactBorderColor #1F3864
+skinparam ComponentBackgroundColor #EEF3FB
+
+node "Cliente\n(PC o portátil)" <<device>> as CLI {
+  node "Navegador web\n(Chrome, Edge, Firefox)" <<executionEnvironment>> as NAV {
+    artifact "app-web (React 18)\nindex.html + assets/index-*.js" <<artifact>> as SPA
+  }
+}
+
+node "Servidor de aplicación\n(Linux)" <<device>> as SRV {
+  node "JVM — Java 21\nSpring Boot 3.3 (Tomcat embebido)" <<executionEnvironment>> as JVM {
+    artifact "prestamo-laboratorio-3.0.0.jar\n(incluye static/ con la app web)" <<artifact>> as JAR
+    artifact "application.properties\n--\nPORT = 443 (TLS)\nDB_URL = jdbc:postgresql://srv-bd:5432/prestamos\nDB_USER / DB_PASSWORD (variables de entorno)\nDATOS_DEMO = false" <<deployment spec>> as SPEC
+  }
+}
+
+node "Servidor de base de datos\n(Linux)" <<device>> as BD {
+  node "PostgreSQL 16" <<executionEnvironment>> as PGE {
+    artifact "base_de_datos.sql\n(tablas, restricción de exclusión\ny disparador)" <<artifact>> as SQL
+  }
+}
+
+component "Aplicación web" <<component>> as CWEB
+component "Backend/API" <<component>> as CAPI
+
+CLI -- SRV : <<protocol>>\nHTTPS (443)\nREST + JSON
+SRV -- BD : <<protocol>>\nPostgreSQL / TCP (5432)\nvía JDBC
+SPA ..> CWEB : <<manifest>>
+JAR ..> CAPI : <<manifest>>
+SPEC .. JAR
+JAR ..> SPA : <<deploy>>
+@enduml

@@ -1,0 +1,36 @@
+@startuml
+title Diagrama de despliegue — nivel de instancia (MVP en la demostración)
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam ArrowColor #1F3864
+skinparam NodeBorderColor #1F3864
+skinparam NodeBackgroundColor #F4F7FC
+skinparam ArtifactBackgroundColor #FFFFFF
+skinparam ArtifactBorderColor #1F3864
+
+node "equipo-demo : Portátil del equipo\n(Windows 11, macOS o Linux)" <<device>> as PC {
+  node "Navegador web" <<executionEnvironment>> as NAV {
+    artifact "app-web React\n(descargada de localhost:8080)" <<artifact>> as SPA
+  }
+  node "JVM — JDK 21\nSpring Boot 3.3 (mvn spring-boot:run)" <<executionEnvironment>> as JVM {
+    artifact "backend/ (prestamo-laboratorio)\nstatic/ = app web compilada" <<artifact>> as APP
+    artifact "application.properties\n--\nserver.port = 8080\nDB_URL = jdbc:postgresql://localhost:5432/prestamos\nDATOS_DEMO = true (3 cuentas y 4 recursos)" <<deployment spec>> as SPEC
+  }
+  node "Docker Engine" <<executionEnvironment>> as DOCK {
+    node "contenedor postgres:16\n(docker compose up -d)" <<executionEnvironment>> as PG {
+      artifact "base «prestamos»\n(volumen «datos»)" <<artifact>> as DB
+    }
+  }
+}
+
+NAV -- JVM : <<protocol>>\nHTTP localhost:8080\nREST + JSON, token Bearer
+JVM -- PG : <<protocol>>\nJDBC localhost:5432
+SPEC .. APP
+APP ..> SPA : <<deploy>>
+
+legend bottom
+  Arranque: 1) docker compose up -d   2) ./ejecutar.sh   3) abrir http://localhost:8080.
+  Sin Docker se puede usar un PostgreSQL instalado en el mismo equipo (ver README).
+  HTTP en el puerto 8080 se usa solo en local; en producción aplica la especificación (HTTPS 443).
+endlegend
+@enduml
