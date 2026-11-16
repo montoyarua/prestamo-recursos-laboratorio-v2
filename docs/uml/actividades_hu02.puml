@@ -1,0 +1,41 @@
+@startuml
+title HU-02 — Solicitar préstamo de un recurso
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam ArrowColor #1F3864
+skinparam ActivityBorderColor #1F3864
+skinparam ActivityDiamondBackgroundColor #F2F2F2
+|Estudiante / Docente|
+start
+:Iniciar sesión (HU-09);
+:Consultar recursos disponibles (HU-01);
+:Seleccionar laboratorio o equipo;
+repeat
+  :Diligenciar formulario\n(recurso, fecha, horario, motivo);
+  :Enviar solicitud;
+  |Sistema|
+  :Validar campos obligatorios\n(ValidadorCampos);
+  backward :Revisar los campos indicados;
+repeat while ([campos incompletos]) is (sí) not (no)
+:Validar horario\n(ValidadorHorario);
+if ([fecha y hora de inicio vigentes\ny hora fin > hora inicio]) then (no)
+  :Mostrar «El horario no es válido»\n(HorarioInvalidoException, 400);
+  |Estudiante / Docente|
+  stop
+else (sí)
+endif
+|Sistema|
+:Verificar cruces con reservas aprobadas\ny préstamos sin devolver\n(HU-03, RN-01, RN-04 y RN-05);
+if ([existe cruce]) then (sí)
+  :Mostrar aviso: recurso\nno disponible en ese horario;
+  |Estudiante / Docente|
+  stop
+else (no)
+endif
+|Sistema|
+:Crear solicitud en estado\n«Pendiente» (RN-03, State);
+:Guardar solicitud en PostgreSQL\n(transacción, RNF-05);
+|Estudiante / Docente|
+:Ver confirmación de\nsolicitud registrada;
+stop
+@enduml

@@ -1,0 +1,48 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam ArrowColor #1F3864
+skinparam ClassBorderColor #1F3864
+skinparam ClassBackgroundColor #EEF3FB
+skinparam ClassHeaderBackgroundColor #D9E2F3
+skinparam NoteBackgroundColor #FFF9DB
+skinparam NoteBorderColor #BF9000
+hide empty members
+title Chain of Responsibility: validación de solicitudes
+class SolicitudService <<Cliente>> {
+  - cadenaRegistro : ValidadorSolicitud
+  - cadenaAprobacion : ValidadorSolicitud
+  + registrarSolicitud(actor, datos) : Solicitud
+  + aprobarSolicitud(actor, id) : Solicitud
+}
+abstract class ValidadorSolicitud <<Manejador>> {
+  - siguiente : ValidadorSolicitud
+  + enlazar(siguiente : ValidadorSolicitud) : ValidadorSolicitud
+  + validar(s : Solicitud) : void {final}
+  # {abstract} comprobar(s : Solicitud) : void
+}
+class ValidadorCampos
+class ValidadorHorario {
+  - reloj : Clock
+}
+class ValidadorConflictoRecurso
+class ValidadorConflictoUsuario
+interface DisponibilidadPort {
+  + recursoOcupado(…) : boolean
+  + usuarioOcupado(…) : boolean
+}
+SolicitudService --> "2" ValidadorSolicitud : cadenas
+ValidadorSolicitud --> "0..1" ValidadorSolicitud : siguiente
+ValidadorSolicitud <|-- ValidadorCampos
+ValidadorSolicitud <|-- ValidadorHorario
+ValidadorSolicitud <|-- ValidadorConflictoRecurso
+ValidadorSolicitud <|-- ValidadorConflictoUsuario
+ValidadorConflictoRecurso --> DisponibilidadPort : RN-01, RN-04
+ValidadorConflictoUsuario --> DisponibilidadPort : RN-05
+note right of SolicitudService
+  Main.armar() arma e inyecta las cadenas:
+  registro: Campos → Horario → ConflictoRecurso → ConflictoUsuario
+  aprobación: Horario → ConflictoRecurso → ConflictoUsuario
+end note
+@enduml

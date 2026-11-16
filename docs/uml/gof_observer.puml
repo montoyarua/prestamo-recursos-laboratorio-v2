@@ -1,0 +1,35 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam ArrowColor #1F3864
+skinparam ClassBorderColor #1F3864
+skinparam ClassBackgroundColor #EEF3FB
+skinparam ClassHeaderBackgroundColor #D9E2F3
+skinparam NoteBackgroundColor #FFF9DB
+skinparam NoteBorderColor #BF9000
+hide empty members
+title Observer: decisión de solicitudes
+class SolicitudService <<Sujeto>> {
+  - observadores : List<SolicitudObserver>
+  + agregarObservador(o : SolicitudObserver) : void
+  + quitarObservador(o : SolicitudObserver) : void
+  - notificarObservadores(s : Solicitud) : void
+}
+interface SolicitudObserver <<Observador>> {
+  + solicitudDecidida(s : Solicitud) : void
+}
+class NotificadorSolicitante
+class CreadorDePrestamo
+interface NotificacionPort {
+  + notificar(usuarioId, mensaje) : void
+}
+interface PrestamoPort {
+  + crearPrestamo(s : Solicitud) : void
+}
+SolicitudService o--> "*" SolicitudObserver : observadores
+SolicitudObserver <|.. NotificadorSolicitante
+SolicitudObserver <|.. CreadorDePrestamo
+NotificadorSolicitante --> NotificacionPort : HU-04
+CreadorDePrestamo --> PrestamoPort : si fue aprobada
+@enduml

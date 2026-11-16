@@ -1,0 +1,48 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam ArrowColor #1F3864
+skinparam ClassBorderColor #1F3864
+skinparam ClassBackgroundColor #EEF3FB
+skinparam ClassHeaderBackgroundColor #D9E2F3
+skinparam NoteBackgroundColor #FFF9DB
+skinparam NoteBorderColor #BF9000
+hide empty members
+title Factory Method: creación de recursos
+class RecursoService <<Cliente>> {
+  - creadores : Map<TipoRecurso, RecursoCreator>
+  + registrarRecurso(actor, tipo, datos) : Recurso
+}
+abstract class RecursoCreator <<Creador>> {
+  + nuevoRecurso(datos : Map) : Recurso {final}
+  # {abstract} crearRecurso(datos : Map) : Recurso
+}
+class LaboratorioCreator {
+  # crearRecurso(datos : Map) : Recurso
+}
+class EquipoCreator {
+  # crearRecurso(datos : Map) : Recurso
+}
+abstract class Recurso <<Producto>> {
+  - nombre : String
+  - estado : EstadoRecurso
+}
+class Laboratorio {
+  - ubicacion : String
+  - capacidad : int
+}
+class Equipo {
+  - marca : String
+  - modelo : String
+  - numeroSerie : String
+}
+RecursoService --> "*" RecursoCreator : creadores
+RecursoCreator <|-- LaboratorioCreator
+RecursoCreator <|-- EquipoCreator
+Recurso <|-- Laboratorio
+Recurso <|-- Equipo
+LaboratorioCreator ..> Laboratorio : «create»
+EquipoCreator ..> Equipo : «create»
+RecursoCreator ..> Recurso
+@enduml

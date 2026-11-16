@@ -1,0 +1,56 @@
+@startuml
+title HU-07 — Aprobar o rechazar solicitudes
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam ArrowColor #1F3864
+skinparam ActivityBorderColor #1F3864
+skinparam ActivityDiamondBackgroundColor #F2F2F2
+|Encargado de laboratorio|
+start
+:Iniciar sesión (HU-09);
+:Abrir solicitudes pendientes;
+:Seleccionar una solicitud;
+:Elegir aprobar o rechazar;
+|Sistema|
+if ([rol = encargado (Proxy, RN-02)]) then (no)
+  :Denegar acción\n(AccesoDenegadoException, 403);
+  stop
+else (sí)
+endif
+if ([la solicitud existe]) then (no)
+  :Informar «La solicitud no existe» (404);
+  stop
+else (sí)
+endif
+if ([decisión]) then (aprobar)
+  if ([solicitud «Pendiente» (State)]) then (no)
+    :Rechazar la acción\n(TransicionInvalidaException, 409);
+    stop
+  else (sí)
+  endif
+  :Volver a verificar con la cadena de aprobación:\nhorario vigente y sin cruces (RN-01, RN-04, RN-05);
+  if ([horario vencido o existe cruce]) then (sí)
+    :Rechazar la acción; la solicitud sigue «Pendiente»\n(HorarioInvalido 400 / ConflictoHorario 409);
+    stop
+  else (no)
+  endif
+  :Cambiar estado a «Aprobada»;
+  fork
+    :Notificar al solicitante\n(NotificadorSolicitante);
+  fork again
+    :Crear préstamo «Activo»\n(CreadorDePrestamo);
+  end fork
+else (rechazar)
+  if ([solicitud «Pendiente» (State)]) then (no)
+    :Rechazar la acción\n(TransicionInvalidaException, 409);
+    stop
+  else (sí)
+  endif
+  :Cambiar estado a «Rechazada»;
+  :Notificar al solicitante\n(NotificadorSolicitante);
+endif
+:Actualizar lista de pendientes;
+|Encargado de laboratorio|
+:Ver lista actualizada;
+stop
+@enduml

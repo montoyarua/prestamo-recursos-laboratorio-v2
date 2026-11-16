@@ -1,0 +1,39 @@
+@startuml
+title HU-03 — Bloquear solicitudes en conflicto de horario
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam ArrowColor #1F3864
+skinparam ActivityBorderColor #1F3864
+skinparam ActivityDiamondBackgroundColor #F2F2F2
+|Estudiante / Docente|
+start
+:Enviar solicitud con\nrecurso, fecha y horario;
+|Sistema|
+:Abrir transacción con bloqueo\n(pg_advisory_xact_lock, RNF-05);
+:Buscar reservas aprobadas sin devolver\ny préstamos activos del mismo recurso;
+if ([se cruza en horario]) then (sí)
+  :Deshacer la transacción (ROLLBACK);
+  :Rechazar el registro\n(ConflictoHorarioException, 409, RN-01 y RN-04);
+  |Estudiante / Docente|
+  :Ver aviso: el recurso no está\ndisponible en ese horario;
+  :Elegir otro horario u otro recurso;
+  stop
+else (no)
+  |Sistema|
+  :Buscar reservas aprobadas sin devolver\ndel mismo usuario;
+  if ([el usuario tiene otra reserva\nen ese horario]) then (sí)
+    :Deshacer la transacción (ROLLBACK);
+    :Rechazar el registro\n(ConflictoHorarioException, 409, RN-05);
+    |Estudiante / Docente|
+    :Ver aviso de cruce\ncon su otra reserva;
+    stop
+  else (no)
+    |Sistema|
+    :Registrar solicitud «Pendiente»;
+    :Confirmar la transacción (COMMIT);
+    |Estudiante / Docente|
+    :Ver confirmación;
+    stop
+  endif
+endif
+@enduml

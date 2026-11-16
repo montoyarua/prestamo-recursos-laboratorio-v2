@@ -1,0 +1,44 @@
+@startuml
+title HU-06 — Administrar laboratorios y equipos
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam ArrowColor #1F3864
+skinparam ActivityBorderColor #1F3864
+skinparam ActivityDiamondBackgroundColor #F2F2F2
+|Encargado de laboratorio|
+start
+:Iniciar sesión;
+|Sistema|
+if ([rol = encargado (RN-02, RNF-02)]) then (no)
+  :Denegar acceso (AccesoDenegadoException, 403);
+  stop
+else (sí)
+endif
+:Mostrar panel de inventario;
+|Encargado de laboratorio|
+:Elegir acción e ingresar datos;
+|Sistema|
+switch ([acción elegida])
+case ([registrar])
+  if ([tipo válido y campos completos]) then (no)
+    :Indicar los campos faltantes\n(CamposIncompletosException, 400);
+  else (sí)
+    :Crear Laboratorio o Equipo\nsegún el tipo (Factory Method);
+    :Guardar en estado «Disponible»;
+  endif
+case ([modificar])
+  :Guardar cambios del recurso;
+case ([eliminar])
+  if ([tiene solicitudes pendientes o aprobadas\nsin devolver, o préstamos activos]) then (sí)
+    :Impedir eliminación y mostrar motivo\n(RecursoConSolicitudesVigentesException, 409, RN-06);
+  else (no)
+    :Dar de baja el recurso\n(baja lógica: se conserva el historial);
+  endif
+case ([consultar])
+  :Listar recursos con su estado;
+endswitch
+:Mostrar inventario actualizado;
+|Encargado de laboratorio|
+:Revisar resultado;
+stop
+@enduml

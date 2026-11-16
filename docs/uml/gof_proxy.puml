@@ -1,0 +1,41 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam ArrowColor #1F3864
+skinparam ClassBorderColor #1F3864
+skinparam ClassBackgroundColor #EEF3FB
+skinparam ClassHeaderBackgroundColor #D9E2F3
+skinparam NoteBackgroundColor #FFF9DB
+skinparam NoteBorderColor #BF9000
+hide empty members
+title Proxy de protección: solicitudes
+class SolicitudesRest <<Cliente>>
+interface SolicitudOperaciones <<Sujeto>> {
+  + registrarSolicitud(actor, datos) : Solicitud
+  + aprobarSolicitud(actor, id) : Solicitud
+  + rechazarSolicitud(actor, id) : Solicitud
+  + listarPendientes(actor) : List<Solicitud>
+  + listarDeUsuario(actor) : List<Solicitud>
+}
+class SolicitudServiceProxy <<Proxy>> {
+  - real : SolicitudOperaciones
+  - autorizacion : AutorizacionPort
+  - exigir(actor, operacion) : void
+}
+class SolicitudService <<Sujeto real>>
+interface AutorizacionPort {
+  + tienePermiso(usuario, operacion) : boolean
+}
+class UsuarioService
+SolicitudesRest --> SolicitudOperaciones
+SolicitudOperaciones <|.. SolicitudServiceProxy
+SolicitudOperaciones <|.. SolicitudService
+SolicitudServiceProxy --> SolicitudService : delega (real)
+SolicitudServiceProxy --> AutorizacionPort : consulta
+AutorizacionPort <|.. UsuarioService
+note bottom of SolicitudServiceProxy
+  Si el rol no tiene permiso lanza AccesoDenegadoException (RN-02).
+  PrestamoServiceProxy aplica la misma estructura a las devoluciones.
+end note
+@enduml

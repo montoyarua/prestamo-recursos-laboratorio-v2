@@ -1,0 +1,94 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam ArrowColor #1F3864
+skinparam ClassBorderColor #1F3864
+skinparam ClassBackgroundColor #EEF3FB
+skinparam ClassHeaderBackgroundColor #D9E2F3
+skinparam NoteBackgroundColor #FFF9DB
+skinparam NoteBorderColor #BF9000
+hide empty members
+skinparam defaultFontSize 15
+title C4 nivel 4, vista B: componente Gestión de Inventario (código del MVP)
+class RecursosRest <<control>>
+class RecursoService {
+  - creadores : Map<TipoRecurso, RecursoCreator>
+  + registrarRecurso(actor, tipo, datos) : Recurso
+  + modificarRecurso(actor, id, datos) : Recurso
+  + eliminarRecurso(actor, id) : void
+  + consultarRecursos() : List<Recurso>
+  + consultarDisponibles(fecha, inicio, fin) : List<Recurso>
+}
+abstract class RecursoCreator <<Factory Method>> {
+  + nuevoRecurso(datos) : Recurso
+  # crearRecurso(datos) : Recurso
+}
+class LaboratorioCreator
+class EquipoCreator
+abstract class Recurso {
+  - nombre : String
+  - estado : EstadoRecurso
+  + marcarPrestado() : void
+  + marcarDisponible() : void
+  + actualizar(datos) : void
+}
+class Laboratorio {
+  - ubicacion : String
+  - capacidad : int
+}
+class Equipo {
+  - marca : String
+  - modelo : String
+  - numeroSerie : String
+}
+enum EstadoRecurso {
+  DISPONIBLE
+  PRESTADO
+}
+enum TipoRecurso {
+  LABORATORIO
+  EQUIPO
+}
+class RecursoRepository {
+  + guardar(r) : Recurso
+  + buscar(id) : Optional<Recurso>
+  + todos() : List<Recurso>
+  + eliminar(id) : void
+}
+interface RecursosVigentesPort {
+  + tieneVigentes(recursoId) : boolean
+}
+interface DisponibilidadPort {
+  + recursosOcupados(fecha, inicio, fin) : Set<Long>
+}
+interface AutorizacionPort {
+  + tienePermiso(usuario, operacion) : boolean
+}
+interface Atomicidad {
+  + ejecutar(trabajo) : T
+}
+class DisponibilidadService
+
+RecursosRest --> RecursoService
+RecursoService --> "*" RecursoCreator
+RecursoService --> RecursoRepository
+RecursoService --> RecursosVigentesPort : RN-06
+RecursoService --> DisponibilidadPort : HU-01
+RecursoService --> AutorizacionPort : RN-02
+RecursoService --> Atomicidad : transacción
+RecursosVigentesPort <|.. DisponibilidadService
+DisponibilidadPort <|.. DisponibilidadService
+RecursoCreator <|-- LaboratorioCreator
+RecursoCreator <|-- EquipoCreator
+LaboratorioCreator ..> Laboratorio : «create»
+EquipoCreator ..> Equipo : «create»
+Recurso <|-- Laboratorio
+Recurso <|-- Equipo
+Recurso --> EstadoRecurso
+RecursoService ..> TipoRecurso
+note bottom of RecursoRepository
+  eliminar(id) es una baja lógica:
+  activo = false, se conserva el historial
+end note
+@enduml

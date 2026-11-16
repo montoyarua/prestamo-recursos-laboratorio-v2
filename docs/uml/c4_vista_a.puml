@@ -1,0 +1,94 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam ArrowColor #1F3864
+skinparam ClassBorderColor #1F3864
+skinparam ClassBackgroundColor #EEF3FB
+skinparam ClassHeaderBackgroundColor #D9E2F3
+skinparam NoteBackgroundColor #FFF9DB
+skinparam NoteBorderColor #BF9000
+hide empty members
+skinparam defaultFontSize 15
+title C4 nivel 4, vista A: componente Gestión de Solicitudes (código del MVP)
+class SolicitudesRest <<control>>
+interface SolicitudOperaciones {
+  + registrarSolicitud(actor, datos) : Solicitud
+  + aprobarSolicitud(actor, id) : Solicitud
+  + rechazarSolicitud(actor, id) : Solicitud
+  + listarPendientes(actor) : List<Solicitud>
+  + listarDeUsuario(actor) : List<Solicitud>
+}
+class SolicitudesTransaccionales <<decorador Spring>>
+class SolicitudServiceProxy <<Proxy>> {
+  - exigir(actor, operacion) : void
+}
+class SolicitudService {
+  - cadenaRegistro : ValidadorSolicitud
+  - cadenaAprobacion : ValidadorSolicitud
+  - observadores : List<SolicitudObserver>
+  + agregarObservador(o) : void
+  - notificarObservadores(s) : void
+}
+class "NuevaSolicitud" as NS <<record>>
+class SolicitudRepository
+interface AutorizacionPort {
+  + tienePermiso(usuario, operacion) : boolean
+}
+abstract class ValidadorSolicitud <<Chain>> {
+  + enlazar(siguiente) : ValidadorSolicitud
+  + validar(s) : void
+  # comprobar(s) : void
+}
+class ValidadorCampos
+class ValidadorHorario
+class ValidadorConflictoRecurso
+class ValidadorConflictoUsuario
+interface DisponibilidadPort {
+  + recursoOcupado(…) : boolean
+  + usuarioOcupado(…) : boolean
+}
+interface SolicitudObserver <<Observer>> {
+  + solicitudDecidida(s) : void
+}
+class NotificadorSolicitante
+class CreadorDePrestamo
+interface NotificacionPort
+interface PrestamoPort
+class Solicitud <<State: contexto>> {
+  + aprobar() : void
+  + rechazar() : void
+  + getEstado() : EstadoSolicitud
+}
+interface EstadoSolicitudState <<State>>
+class EstadoPendiente
+class EstadoAprobada
+class EstadoRechazada
+
+SolicitudesRest --> SolicitudOperaciones
+SolicitudOperaciones <|.. SolicitudesTransaccionales
+SolicitudOperaciones <|.. SolicitudServiceProxy
+SolicitudOperaciones <|.. SolicitudService
+SolicitudesTransaccionales --> SolicitudServiceProxy : envuelve
+SolicitudServiceProxy --> SolicitudService : delega
+SolicitudServiceProxy --> AutorizacionPort
+SolicitudService ..> NS
+SolicitudService --> SolicitudRepository
+SolicitudService --> "2" ValidadorSolicitud
+ValidadorSolicitud <|-- ValidadorCampos
+ValidadorSolicitud <|-- ValidadorHorario
+ValidadorSolicitud <|-- ValidadorConflictoRecurso
+ValidadorSolicitud <|-- ValidadorConflictoUsuario
+ValidadorConflictoRecurso --> DisponibilidadPort
+ValidadorConflictoUsuario --> DisponibilidadPort
+SolicitudService o--> "*" SolicitudObserver
+SolicitudObserver <|.. NotificadorSolicitante
+SolicitudObserver <|.. CreadorDePrestamo
+NotificadorSolicitante --> NotificacionPort
+CreadorDePrestamo --> PrestamoPort
+SolicitudService ..> Solicitud : «create»
+Solicitud o--> EstadoSolicitudState
+EstadoSolicitudState <|.. EstadoPendiente
+EstadoSolicitudState <|.. EstadoAprobada
+EstadoSolicitudState <|.. EstadoRechazada
+@enduml

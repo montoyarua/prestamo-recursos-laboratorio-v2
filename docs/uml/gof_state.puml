@@ -1,0 +1,38 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam ArrowColor #1F3864
+skinparam ClassBorderColor #1F3864
+skinparam ClassBackgroundColor #EEF3FB
+skinparam ClassHeaderBackgroundColor #D9E2F3
+skinparam NoteBackgroundColor #FFF9DB
+skinparam NoteBorderColor #BF9000
+hide empty members
+title State: estados de la solicitud
+class Solicitud <<Contexto>> {
+  - estado : EstadoSolicitudState
+  + aprobar() : void
+  + rechazar() : void
+  ~ cambiarEstado(nuevo : EstadoSolicitudState) : void
+  + getEstado() : EstadoSolicitud
+}
+interface EstadoSolicitudState <<Estado>> {
+  + tipo() : EstadoSolicitud
+  + aprobar(s : Solicitud) : void
+  + rechazar(s : Solicitud) : void
+}
+class EstadoPendiente
+class EstadoAprobada
+class EstadoRechazada
+Solicitud o-right-> "1" EstadoSolicitudState : estado
+EstadoSolicitudState <|.. EstadoPendiente
+EstadoSolicitudState <|.. EstadoAprobada
+EstadoSolicitudState <|.. EstadoRechazada
+EstadoPendiente ..> EstadoAprobada : crea al aprobar
+EstadoPendiente ..> EstadoRechazada : crea al rechazar
+note bottom of EstadoAprobada
+  aprobar() y rechazar() lanzan
+  TransicionInvalidaException
+end note
+@enduml
