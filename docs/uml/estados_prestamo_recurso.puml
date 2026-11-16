@@ -1,0 +1,37 @@
+@startuml
+title Máquinas de estados — Préstamo y Recurso
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam ArrowColor #1F3864
+skinparam StateBorderColor #1F3864
+skinparam StateBackgroundColor #EEF3FB
+skinparam nodesep 60
+
+state "Préstamo" as P {
+  [*] --> Activo : crearPrestamo(s)\n[solicitud aprobada]\n/ CreadorDePrestamo (Observer)
+  Activo : entry / guardar con fechaCreacion\ny marcar el recurso «Prestado»
+  Activo : do / bloquear el recurso hasta la devolución (RN-04)
+  Activo --> Finalizado : registrarDevolucion()\n[rol encargado] (HU-08)\n/ fechaDevolucion = ahora
+  Finalizado : entry / marcar la solicitud como devuelta\ny liberar el recurso
+  Finalizado : registrarDevolucion() / PrestamoYaFinalizadoException
+  Finalizado --> [*]
+}
+
+state "Recurso" as R {
+  [*] --> Disponible : registrarRecurso()\n[rol encargado y campos completos]\n/ Factory Method (HU-06)
+  Disponible : entry / aparece en la consulta de disponibilidad (HU-01)
+  Disponible : modificarRecurso() [rol encargado] / actualizar datos
+  Disponible : eliminarRecurso() [con solicitudes o préstamos vigentes]\n/ RecursoConSolicitudesVigentesException (RN-06)
+  Disponible --> Prestado : marcarPrestado()\n(préstamo creado)
+  Prestado : entry / deja de aparecer como disponible (RN-04)
+  Prestado : eliminarRecurso() / RecursoConSolicitudesVigentesException
+  Prestado --> Disponible : marcarDisponible()\n[sin otro préstamo activo]\n(devolución registrada)
+  Disponible --> [*] : eliminarRecurso()\n[rol encargado y sin vigentes] (RN-06)\n/ baja lógica (activo = false)
+}
+
+legend bottom
+  Todas las transiciones están implementadas: Prestamo.finalizar(), Recurso.marcarPrestado() y marcarDisponible(),
+  RecursoService.eliminarRecurso(). Eliminar es una baja lógica: el recurso deja de listarse, pero su historial
+  de solicitudes y préstamos se conserva en la base de datos.
+endlegend
+@enduml

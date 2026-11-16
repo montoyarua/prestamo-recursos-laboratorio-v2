@@ -1,0 +1,41 @@
+@startuml
+title Máquina de estados — Solicitud de préstamo (patrón State)
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam ArrowColor #1F3864
+skinparam StateBorderColor #1F3864
+skinparam StateBackgroundColor #EEF3FB
+
+state validacion <<choice>>
+[*] --> validacion : registrarSolicitud(actor, NuevaSolicitud)\n/ ejecutar cadena de registro
+validacion --> Pendiente : [campos completos, fecha y hora vigentes,\nfin > inicio y sin cruces (RN-01, RN-04, RN-05)]\n/ guardar con fechaRegistro (RN-03)
+validacion --> [*] : [falla una regla]\n/ CamposIncompletos, HorarioInvalido o\nConflictoHorarioException (no se crea)
+
+Pendiente : entry / aparece en «Solicitudes pendientes»\ndel encargado, en orden de llegada
+Pendiente : do / esperar la decisión del encargado
+Pendiente : aprobar() [rol ≠ encargado] / AccesoDenegadoException (RN-02)
+Pendiente : aprobar() [el horario ya pasó] / HorarioInvalidoException
+Pendiente : aprobar() [se cruza con una reserva aprobada\no un préstamo sin devolver] / ConflictoHorarioException
+
+Pendiente --> Aprobada : aprobar()\n[rol encargado, horario vigente\ny sin cruces (RN-01, RN-04, RN-05)]
+Pendiente --> Rechazada : rechazar()\n[rol encargado]
+
+Aprobada : entry / notificar al solicitante (HU-04)\ny crear el préstamo «Activo» (Observer)
+Aprobada : aprobar() / TransicionInvalidaException
+Aprobada : rechazar() / TransicionInvalidaException
+
+Rechazada : entry / notificar al solicitante (HU-04)
+Rechazada : aprobar() / TransicionInvalidaException
+Rechazada : rechazar() / TransicionInvalidaException
+
+Aprobada --> [*]
+Rechazada --> [*]
+
+legend bottom
+  Sintaxis de transición: evento [guarda] / efecto. El rombo es un pseudoestado choice:
+  se evalúan guardas mutuamente excluyentes y se sigue una sola transición.
+  Las líneas «evento [guarda] / acción» dentro de un estado son transiciones internas:
+  responden al evento sin salir del estado, por eso no se ejecutan entry ni exit.
+  Clases del patrón State: EstadoPendiente, EstadoAprobada y EstadoRechazada (columna estado de la tabla solicitud).
+endlegend
+@enduml
