@@ -70,7 +70,7 @@ docs/capturas/        Capturas del MVP: flujos principales y alternos
 ```
 
 
-!
+
 ## Diagramas UML
 
 Todos los diagramas están en `docs/uml/` en dos formatos: `.puml` (código PlantUML, editable) y `.png` (imagen). Cada enlace abre el diagrama en el editor en línea de PlantUML. Son los mismos diagramas del documento final del Entregable 3.
