@@ -1,0 +1,92 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam maxMessageSize 150
+skinparam ParticipantPadding 6
+skinparam BoxPadding 4
+skinparam sequenceMessageAlign center
+skinparam ArrowColor #1F3864
+skinparam SequenceLifeLineBorderColor #1F3864
+skinparam ParticipantBorderColor #1F3864
+skinparam ParticipantBackgroundColor #EEF3FB
+skinparam ActorBorderColor #1F3864
+skinparam SequenceGroupBorderColor #6A3FB5
+skinparam SequenceGroupHeaderFontColor #6A3FB5
+skinparam SequenceBoxBorderColor #1F3864
+skinparam SequenceLifeLineBackgroundColor #CFE8E6
+hide footbox
+mainframe **sd** Registrar la devolución de un recurso (HU-08)
+actor "Encargado de\nlaboratorio" as U
+boundary ":Activos\n(React)" as UI
+control ":PrestamosRest" as API
+participant ":Prestamos\nTransaccionales" as TX
+participant ":PrestamoService\nProxy" as PX
+participant ":PrestamoService" as PS
+database ":PrestamoRepository\n(PostgreSQL)" as PREPO
+participant "p:Prestamo" as P
+participant "r:Recurso" as R
+database ":RecursoRepository\n(PostgreSQL)" as RREPO
+
+U -> UI : clic en «Registrar devolución»
+activate UI
+UI -> API : POST /api/prestamos/{id}/devolver (Bearer token)
+activate API
+ref over API : sd Autenticar petición (HU-09)
+API -> TX : registrarDevolucion(actor, id) : Prestamo
+activate TX
+TX -> TX : BEGIN; pg_advisory_xact_lock(7301)
+TX -> PX : registrarDevolucion(actor, id) : Prestamo
+activate PX
+ref over PX : sd Verificar permiso (REGISTRAR_DEVOLUCION)
+alt rol distinto de encargado (HU-08 Esc. 3, RN-02)
+  PX --> TX : AccesoDenegadoException
+else rol encargado
+  PX -> PS : registrarDevolucion(actor, id) : Prestamo
+  activate PS
+  PS -> PREPO : buscar(id) : Optional<Prestamo>
+  activate PREPO
+  PREPO --> PS : p
+  deactivate PREPO
+  PS -> P : finalizar(ahora)
+  activate P
+  alt estado = FINALIZADO (HU-08 Esc. 2)
+    P --> PS : PrestamoYaFinalizadoException
+    PS --> PX : excepción
+  else estado = ACTIVO
+    P -> P : estado = FINALIZADO;\nfechaDevolucion = ahora
+    P --> PS : ok
+    PS -> PREPO : guardar(p)
+    activate PREPO
+    PREPO -> PREPO : disparador liberar_solicitud():\nsolicitud.devuelta = TRUE
+    deactivate PREPO
+    opt el recurso no tiene otro préstamo activo
+      PS -> R : marcarDisponible()
+      activate R
+      deactivate R
+      PS -> RREPO : guardar(r)
+      activate RREPO
+      deactivate RREPO
+    end
+    PS --> PX : p «Finalizado»
+  end
+  deactivate P
+  deactivate PS
+end
+PX --> TX : p o excepción
+deactivate PX
+alt sin excepción
+  TX -> TX : COMMIT
+  TX --> API : p
+  API --> UI : 200 {estado: "Finalizado"}
+  UI --> U : aviso verde; el recurso vuelve a «Disponible»
+else con excepción
+  TX -> TX : ROLLBACK
+  TX --> API : excepción
+  API --> UI : 403 / 404 / 409 {error}
+  UI --> U : aviso rojo
+end
+deactivate TX
+deactivate API
+deactivate UI
+@enduml

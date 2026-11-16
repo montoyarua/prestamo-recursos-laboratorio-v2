@@ -1,0 +1,38 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam maxMessageSize 150
+skinparam ParticipantPadding 6
+skinparam BoxPadding 4
+skinparam sequenceMessageAlign center
+skinparam ArrowColor #1F3864
+skinparam SequenceLifeLineBorderColor #1F3864
+skinparam ParticipantBorderColor #1F3864
+skinparam ParticipantBackgroundColor #EEF3FB
+skinparam ActorBorderColor #1F3864
+skinparam SequenceGroupBorderColor #6A3FB5
+skinparam SequenceGroupHeaderFontColor #6A3FB5
+skinparam SequenceBoxBorderColor #1F3864
+skinparam SequenceLifeLineBackgroundColor #CFE8E6
+hide footbox
+mainframe **sd** Verificar permiso (Proxy de protección, RN-02 y RNF-02)
+participant ":SolicitudServiceProxy /\n:PrestamoServiceProxy /\n:RecursoService" as C
+participant ":UsuarioService\n«AutorizacionPort»" as AU
+participant "actor:Usuario" as US
+
+activate C
+C -> AU : tienePermiso(actor, operacion) : boolean
+activate AU
+AU -> US : getRol() : RolUsuario
+activate US
+US --> AU : rol
+deactivate US
+AU -> AU : rol = ENCARGADO → operacion ≠ REGISTRAR_SOLICITUD\nrol = ESTUDIANTE o DOCENTE → operacion = REGISTRAR_SOLICITUD
+AU --> C : permitido
+deactivate AU
+opt permitido = false
+  C -> C : lanzar AccesoDenegadoException\n(ManejadorErrores responde 403)
+end
+deactivate C
+@enduml

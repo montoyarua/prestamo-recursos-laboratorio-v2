@@ -1,0 +1,43 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam maxMessageSize 150
+skinparam ParticipantPadding 6
+skinparam BoxPadding 4
+skinparam sequenceMessageAlign center
+skinparam ArrowColor #1F3864
+skinparam SequenceLifeLineBorderColor #1F3864
+skinparam ParticipantBorderColor #1F3864
+skinparam ParticipantBackgroundColor #EEF3FB
+skinparam ActorBorderColor #1F3864
+skinparam SequenceGroupBorderColor #6A3FB5
+skinparam SequenceGroupHeaderFontColor #6A3FB5
+skinparam SequenceBoxBorderColor #1F3864
+skinparam SequenceLifeLineBackgroundColor #CFE8E6
+hide footbox
+mainframe **sd** Autenticar petición (HU-09) — usado por todas las rutas /api/*
+boundary ":App web\n(React)" as UI
+participant ":FiltroAutenticacion" as F
+participant ":SesionService" as SE
+control ":Controlador *Rest" as C
+
+activate UI
+UI -> F : petición /api/… (Authorization: Bearer token)
+activate F
+F -> SE : usuarioDe(token) : Optional<Usuario>
+activate SE
+SE --> F : actor o vacío
+deactivate SE
+alt sin sesión válida y la ruta no es POST /api/sesion
+  F --> UI : 401 «Debe iniciar sesión para continuar»
+else sesión válida
+  F -> F : peticion.setAttribute("actor", u)
+  F -> C : doFilter(petición)
+  activate C
+  C --> F : respuesta
+  deactivate C
+  F --> UI : respuesta
+end
+deactivate F
+@enduml

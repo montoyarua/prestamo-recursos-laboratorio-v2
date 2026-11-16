@@ -1,0 +1,91 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam maxMessageSize 150
+skinparam ParticipantPadding 6
+skinparam BoxPadding 4
+skinparam sequenceMessageAlign center
+skinparam ArrowColor #1F3864
+skinparam SequenceLifeLineBorderColor #1F3864
+skinparam ParticipantBorderColor #1F3864
+skinparam ParticipantBackgroundColor #EEF3FB
+skinparam ActorBorderColor #1F3864
+skinparam SequenceGroupBorderColor #6A3FB5
+skinparam SequenceGroupHeaderFontColor #6A3FB5
+skinparam SequenceBoxBorderColor #1F3864
+skinparam SequenceLifeLineBackgroundColor #CFE8E6
+hide footbox
+mainframe **sd** Registrar solicitud de préstamo (HU-02 y HU-03)
+actor "Estudiante /\nDocente" as U
+boundary ":Solicitar\n(React)" as UI
+control ":SolicitudesRest" as API
+participant ":Solicitudes\nTransaccionales" as TX
+participant ":SolicitudService\nProxy" as PX
+participant ":SolicitudService" as SS
+participant "s:Solicitud" as S
+participant ":ValidadorSolicitud\n(cadena de registro)" as CH
+participant ":Disponibilidad\nService" as DS
+database ":SolicitudRepository\n(PostgreSQL)" as REPO
+
+U -> UI : enviarFormulario(recurso, fecha, horaInicio, horaFin, motivo)
+activate UI
+UI -> API : POST /api/solicitudes (JSON, Authorization: Bearer token)
+activate API
+ref over API : sd Autenticar petición (HU-09)
+API -> TX : registrarSolicitud(actor, NuevaSolicitud) : Solicitud
+activate TX
+TX -> TX : BEGIN; pg_advisory_xact_lock(7301) (RNF-05)
+TX -> PX : registrarSolicitud(actor, datos) : Solicitud
+activate PX
+ref over PX : sd Verificar permiso (REGISTRAR_SOLICITUD)
+alt permitido = false (RN-02)
+  PX --> TX : AccesoDenegadoException
+else permitido = true
+  PX -> SS : registrarSolicitud(actor, datos) : Solicitud
+  activate SS
+  SS -> S ** : «create» Solicitud(actor, recurso, fecha, horaInicio, horaFin, motivo, ahora)
+  note right of S : State: nace con\nEstadoPendiente (RN-03)
+  SS -> CH : validar(s)
+  activate CH
+  loop Campos → Horario → ConflictoRecurso → ConflictoUsuario, mientras ninguno falle
+    CH -> CH : comprobar(s)
+    opt el validador es de conflicto (RN-01, RN-04, RN-05)
+      CH -> DS : recursoOcupado(…) / usuarioOcupado(…) : boolean
+      activate DS
+      DS --> CH : ocupado
+      deactivate DS
+    end
+  end
+  alt todas las reglas se cumplen
+    CH --> SS : ok
+    SS -> REPO : guardar(s) : Solicitud
+    activate REPO
+    REPO --> SS : s (con id, «Pendiente»)
+    deactivate REPO
+    SS --> PX : s
+    PX --> TX : s
+  else falta un campo / horario no válido / hay cruce
+    CH --> SS : CamposIncompletos / HorarioInvalido / ConflictoHorarioException
+    SS --> PX : excepción
+    PX --> TX : excepción
+  end
+  deactivate CH
+  deactivate SS
+end
+deactivate PX
+alt sin excepción
+  TX -> TX : COMMIT
+  TX --> API : s
+  API --> UI : 200 {estado: "Pendiente"}
+  UI --> U : aviso verde «Solicitud registrada con estado Pendiente»
+else con excepción
+  TX -> TX : ROLLBACK (no se guarda nada)
+  TX --> API : excepción
+  API --> UI : 400 / 403 / 409 {error} (ManejadorErrores)
+  UI --> U : aviso rojo con el mensaje de la regla
+end
+deactivate TX
+deactivate API
+deactivate UI
+@enduml

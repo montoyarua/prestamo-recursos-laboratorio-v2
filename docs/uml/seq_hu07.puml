@@ -1,0 +1,99 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam maxMessageSize 150
+skinparam ParticipantPadding 6
+skinparam BoxPadding 4
+skinparam sequenceMessageAlign center
+skinparam ArrowColor #1F3864
+skinparam SequenceLifeLineBorderColor #1F3864
+skinparam ParticipantBorderColor #1F3864
+skinparam ParticipantBackgroundColor #EEF3FB
+skinparam ActorBorderColor #1F3864
+skinparam SequenceGroupBorderColor #6A3FB5
+skinparam SequenceGroupHeaderFontColor #6A3FB5
+skinparam SequenceBoxBorderColor #1F3864
+skinparam SequenceLifeLineBackgroundColor #CFE8E6
+hide footbox
+mainframe **sd** Aprobar solicitud (HU-07)
+actor "Encargado de\nlaboratorio" as U
+boundary ":Pendientes\n(React)" as UI
+control ":SolicitudesRest" as API
+participant ":Solicitudes\nTransaccionales" as TX
+participant ":SolicitudService\nProxy" as PX
+participant ":SolicitudService" as SS
+database ":SolicitudRepository\n(PostgreSQL)" as REPO
+participant ":ValidadorSolicitud\n(cadena de aprobación)" as CH
+participant "s:Solicitud" as S
+
+U -> UI : clic en «Aprobar»
+activate UI
+UI -> API : POST /api/solicitudes/{id}/aprobar (Bearer token)
+activate API
+ref over API : sd Autenticar petición (HU-09)
+API -> TX : aprobarSolicitud(actor, id) : Solicitud
+activate TX
+TX -> TX : BEGIN; pg_advisory_xact_lock(7301) (RNF-05)
+TX -> PX : aprobarSolicitud(actor, id) : Solicitud
+activate PX
+ref over PX : sd Verificar permiso (DECIDIR_SOLICITUD)
+alt rol distinto de encargado (RN-02)
+  PX --> TX : AccesoDenegadoException
+else rol encargado
+  PX -> SS : aprobarSolicitud(actor, id) : Solicitud
+  activate SS
+  SS -> REPO : buscar(id) : Optional<Solicitud>
+  activate REPO
+  REPO --> SS : s
+  deactivate REPO
+  alt s.estaPendiente()
+    SS -> CH : validar(s)
+    activate CH
+    loop Horario → ConflictoRecurso → ConflictoUsuario
+      CH -> CH : comprobar(s)
+    end
+    alt el horario ya pasó o se cruza con una reserva aprobada / préstamo sin devolver (RN-01, RN-04, RN-05)
+      CH --> SS : HorarioInvalido / ConflictoHorarioException
+      SS --> PX : excepción (la solicitud sigue «Pendiente»)
+    else horario vigente y sin cruces
+      CH --> SS : ok
+      SS -> S : aprobar()
+      activate S
+      S -> S : cambiarEstado(new EstadoAprobada())
+      S --> SS : ok
+      deactivate S
+      SS -> REPO : guardar(s) : Solicitud
+      activate REPO
+      REPO --> SS : s
+      deactivate REPO
+      ref over SS : sd Notificar decisión (Observer)
+      SS --> PX : s «Aprobada»
+    end
+    deactivate CH
+  else ya está Aprobada o Rechazada (State)
+    SS -> S : aprobar()
+    activate S
+    S --> SS : TransicionInvalidaException
+    deactivate S
+    SS --> PX : excepción
+  end
+  deactivate SS
+end
+PX --> TX : s o excepción
+deactivate PX
+alt sin excepción
+  TX -> TX : COMMIT
+  TX --> API : s
+  API --> UI : 200 {estado: "Aprobada"}
+  UI --> U : aviso verde y lista de pendientes actualizada
+else con excepción
+  TX -> TX : ROLLBACK
+  TX --> API : excepción
+  API --> UI : 400 / 403 / 409 {error}
+  UI --> U : aviso rojo
+end
+deactivate TX
+deactivate API
+deactivate UI
+@enduml

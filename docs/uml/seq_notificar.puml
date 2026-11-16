@@ -1,0 +1,55 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam maxMessageSize 150
+skinparam ParticipantPadding 6
+skinparam BoxPadding 4
+skinparam sequenceMessageAlign center
+skinparam ArrowColor #1F3864
+skinparam SequenceLifeLineBorderColor #1F3864
+skinparam ParticipantBorderColor #1F3864
+skinparam ParticipantBackgroundColor #EEF3FB
+skinparam ActorBorderColor #1F3864
+skinparam SequenceGroupBorderColor #6A3FB5
+skinparam SequenceGroupHeaderFontColor #6A3FB5
+skinparam SequenceBoxBorderColor #1F3864
+skinparam SequenceLifeLineBackgroundColor #CFE8E6
+hide footbox
+mainframe **sd** Notificar decisión (Observer) — usado por aprobar y rechazar
+participant ":SolicitudService" as SS
+participant ":Notificador\nSolicitante" as NS
+participant ":Notificacion\nService" as NSV
+participant "n:Notificacion" as N
+participant ":CreadorDe\nPrestamo" as CP
+participant ":PrestamoService" as PS
+participant "p:Prestamo" as P
+participant "r:Recurso" as R
+
+activate SS
+SS -> SS : notificarObservadores(s)
+loop para cada observador registrado
+  SS -> NS : solicitudDecidida(s)
+  activate NS
+  NS -> NSV : notificar(usuarioId, mensaje)
+  activate NSV
+  NSV -> N ** : «create» Notificacion(usuarioId, mensaje, ahora)
+  note right of N : nace sin leer;\nse guarda en PostgreSQL
+  deactivate NSV
+  deactivate NS
+  SS -> CP : solicitudDecidida(s)
+  activate CP
+  opt s.estaAprobada()
+    CP -> PS : crearPrestamo(s)
+    activate PS
+    PS -> P ** : «create» Prestamo(s, ahora)
+    note right of P : nace «Activo»
+    PS -> R : marcarPrestado()
+    activate R
+    deactivate R
+    deactivate PS
+  end
+  deactivate CP
+end
+deactivate SS
+@enduml

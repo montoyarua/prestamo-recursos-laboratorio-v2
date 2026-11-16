@@ -1,0 +1,67 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam maxMessageSize 150
+skinparam ParticipantPadding 6
+skinparam BoxPadding 4
+skinparam sequenceMessageAlign center
+skinparam ArrowColor #1F3864
+skinparam SequenceLifeLineBorderColor #1F3864
+skinparam ParticipantBorderColor #1F3864
+skinparam ParticipantBackgroundColor #EEF3FB
+skinparam ActorBorderColor #1F3864
+skinparam SequenceGroupBorderColor #6A3FB5
+skinparam SequenceGroupHeaderFontColor #6A3FB5
+skinparam SequenceBoxBorderColor #1F3864
+skinparam SequenceLifeLineBackgroundColor #CFE8E6
+hide footbox
+mainframe **sd** Iniciar sesión (HU-09)
+actor "Usuario" as U
+boundary ":Login\n(React)" as UI
+control ":SesionRest" as API
+participant ":UsuarioService" as US
+database ":UsuarioRepository\n(PostgreSQL)" as REPO
+participant "«utility»\nContrasenas" as CR
+participant ":SesionService" as SE
+
+U -> UI : ingresar(correo, contraseña)
+activate UI
+UI -> API : POST /api/sesion {correo, contrasena}\n(ruta pública: el filtro la deja pasar)
+activate API
+API -> US : autenticar(correo, contrasena) : Usuario
+activate US
+alt falta el correo o la contraseña (Esc. 3)
+  US --> API : CamposIncompletosException
+  API --> UI : 400 «Faltan campos obligatorios: …»
+else campos completos
+  US -> REPO : buscarPorCorreo(correo) : Optional<Usuario>
+  activate REPO
+  REPO --> US : u o vacío
+  deactivate REPO
+  opt existe u
+    US -> CR : coincide(contrasena, u.contrasena) : boolean
+    activate CR
+    CR -> CR : PBKDF2-HMAC-SHA256\ncon la sal guardada (RNF-06)
+    CR --> US : coincide
+    deactivate CR
+  end
+  alt u no existe o la contraseña no coincide (Esc. 2)
+    US --> API : CredencialesInvalidasException
+    API --> UI : 401 «Usuario o contraseña incorrectos»
+  else credenciales correctas (Esc. 1)
+    US --> API : u
+    API -> SE : abrir(u) : String
+    activate SE
+    SE -> SE : token aleatorio (SecureRandom, 24 bytes)
+    SE --> API : token
+    deactivate SE
+    API --> UI : 200 {token, usuario: {nombre, rol}}
+    UI -> UI : guardar token en sessionStorage
+    UI --> U : menú según el rol
+  end
+end
+deactivate US
+deactivate API
+deactivate UI
+@enduml

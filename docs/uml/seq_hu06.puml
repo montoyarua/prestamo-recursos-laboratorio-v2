@@ -1,0 +1,106 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam maxMessageSize 150
+skinparam ParticipantPadding 6
+skinparam BoxPadding 4
+skinparam sequenceMessageAlign center
+skinparam ArrowColor #1F3864
+skinparam SequenceLifeLineBorderColor #1F3864
+skinparam ParticipantBorderColor #1F3864
+skinparam ParticipantBackgroundColor #EEF3FB
+skinparam ActorBorderColor #1F3864
+skinparam SequenceGroupBorderColor #6A3FB5
+skinparam SequenceGroupHeaderFontColor #6A3FB5
+skinparam SequenceBoxBorderColor #1F3864
+skinparam SequenceLifeLineBackgroundColor #CFE8E6
+hide footbox
+mainframe **sd** Registrar y eliminar un recurso (HU-06)
+actor "Encargado de\nlaboratorio" as U
+boundary ":Inventario\n(React)" as UI
+control ":RecursosRest" as API
+participant ":RecursoService" as RS
+participant ":Atomicidad\n(transacción)" as AT
+participant ":Laboratorio\nCreator" as LC
+participant "r:Laboratorio" as R
+participant ":Disponibilidad\nService" as DS
+database ":RecursoRepository\n(PostgreSQL)" as REPO
+
+== Registrar ==
+U -> UI : guardar(tipo = LABORATORIO, nombre, ubicación, capacidad)
+activate UI
+UI -> API : POST /api/recursos (JSON, Bearer token)
+activate API
+ref over API : sd Autenticar petición (HU-09)
+API -> RS : registrarRecurso(actor, tipo, datos) : Recurso
+activate RS
+ref over RS : sd Verificar permiso (GESTIONAR_INVENTARIO)
+alt no es encargado (RN-02)
+  RS --> API : AccesoDenegadoException
+  API --> UI : 403 «Su rol no tiene permiso para administrar el inventario»
+else tipo no válido
+  RS --> API : CamposIncompletosException
+  API --> UI : 400 «Tipo de recurso no válido»
+else encargado y tipo válido
+  RS -> AT : ejecutar(trabajo)
+  activate AT
+  AT -> LC : nuevoRecurso(datos) : Recurso
+  activate LC
+  alt falta un campo obligatorio
+    LC --> AT : CamposIncompletosException (ROLLBACK)
+    AT --> RS : excepción
+    RS --> API : excepción
+    API --> UI : 400 «Faltan campos obligatorios: …»
+  else datos completos
+    LC -> LC : crearRecurso(datos)\n(método de fábrica)
+    LC -> R ** : «create» Laboratorio(nombre, ubicación, capacidad)
+    note right of R : nace «Disponible»
+    LC --> AT : r
+    AT -> REPO : guardar(r) : Recurso
+    activate REPO
+    REPO --> AT : r (con id)
+    deactivate REPO
+    AT --> RS : r (COMMIT)
+    RS --> API : r
+    API --> UI : 200 recurso creado
+  end
+  deactivate LC
+  deactivate AT
+end
+deactivate RS
+deactivate API
+deactivate UI
+
+== Eliminar ==
+U -> UI : clic en «Eliminar» (r)
+activate UI
+UI -> API : DELETE /api/recursos/{id}
+activate API
+API -> RS : eliminarRecurso(actor, id)
+activate RS
+ref over RS : sd Verificar permiso (GESTIONAR_INVENTARIO)
+RS -> AT : ejecutar(trabajo)
+activate AT
+AT -> DS : tieneVigentes(id) : boolean
+activate DS
+DS --> AT : vigentes
+deactivate DS
+alt vigentes = true (RN-06)
+  AT --> RS : RecursoConSolicitudesVigentesException (ROLLBACK)
+  RS --> API : excepción
+  API --> UI : 409 «No se puede eliminar: el recurso tiene\nsolicitudes o préstamos vigentes»
+else vigentes = false
+  AT -> REPO : eliminar(id)
+  activate REPO
+  REPO -> REPO : baja lógica: activo = false\n(se conserva el historial)
+  deactivate REPO
+  AT --> RS : ok (COMMIT)
+  RS --> API : ok
+  API --> UI : 200 {ok: true}
+end
+deactivate AT
+deactivate RS
+deactivate API
+deactivate UI
+@enduml
