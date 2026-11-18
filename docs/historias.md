@@ -128,3 +128,154 @@ Escenario 3: El mismo usuario ya tiene una reserva en ese horario
 - **Datos de prueba:** Un recurso con reserva aprobada de 8:00 a 10:00; una nueva solicitud de 9:00 a 11:00; dos solicitudes enviadas al mismo tiempo.
 - **DoR:** Historia redactada en formato Como / Quiero / Para, escenarios Gherkin definidos, dependencias identificadas y pantalla del prototipo asociada.
 - **DoD:** Todos los escenarios se cumplen al probar la historia, se respetan las reglas de negocio y los RNF asociados, y el equipo valida el resultado.
+
+## HU-04 — Notificar estado de la solicitud
+
+- **ID / Épica:** HU-04 / Seguimiento y control
+- **Trazabilidad:** RU-04 / RF-04
+- **Historia:** Como estudiante o docente, quiero que me avisen claramente si mi solicitud fue aprobada o rechazada, para saber si puedo contar con el recurso o debo buscar otra opción.
+- **Contexto / Escenario:** Panel principal del estudiante o docente, al iniciar sesión.
+- **Valor de negocio / Outcome esperado:** Reducir la incertidumbre del solicitante y evitar desplazamientos innecesarios al laboratorio.
+- **Alcance (incluye) / Out-of-scope:** Incluye avisos dentro del sistema al iniciar sesión. No incluye notificaciones al celular ni correos electrónicos.
+- **Reglas de negocio:** RN-03
+
+**Criterios de aceptación (Gherkin):**
+
+```gherkin
+Escenario 1: Solicitud aprobada
+  Dado que el encargado aprobó una de mis solicitudes pendientes
+  Cuando inicio sesión en el sistema
+  Entonces veo una notificación indicando que mi solicitud fue aprobada
+
+Escenario 2: Solicitud rechazada
+  Dado que el encargado rechazó una de mis solicitudes pendientes
+  Cuando inicio sesión en el sistema
+  Entonces veo una notificación indicando que mi solicitud fue rechazada
+
+Escenario 3: Solicitud aún sin respuesta
+  Dado que mi solicitud sigue en estado "Pendiente" porque el encargado no la ha revisado
+  Cuando inicio sesión en el sistema
+  Entonces no veo ninguna notificación de aprobación ni de rechazo
+  Y la solicitud sigue apareciendo como "Pendiente"
+```
+
+- **NFR:** Global (RNF-02, RNF-04)
+- **Supuestos / Dependencias / Riesgos:** El encargado ya gestionó la solicitud (HU-07).
+- **Datos de prueba:** Una solicitud aprobada y una rechazada, ambas del mismo usuario.
+- **DoR:** Historia redactada en formato Como / Quiero / Para, escenarios Gherkin definidos, dependencias identificadas y pantalla del prototipo asociada.
+- **DoD:** Todos los escenarios se cumplen al probar la historia, se respetan las reglas de negocio y los RNF asociados, y el equipo valida el resultado.
+
+## HU-05 — Consultar el estado de mis préstamos
+
+- **ID / Épica:** HU-05 / Seguimiento y control
+- **Trazabilidad:** RU-05 / RF-05
+- **Historia:** Como estudiante o docente, quiero revisar qué préstamos tengo activos y cuáles ya devolví, para tener control de lo que me falta entregar.
+- **Contexto / Escenario:** Sección "Mis préstamos" del panel del estudiante o docente, con sesión iniciada.
+- **Valor de negocio / Outcome esperado:** Dar autonomía al usuario para hacer seguimiento de sus recursos sin depender del encargado.
+- **Alcance (incluye) / Out-of-scope:** Incluye el listado de préstamos activos y finalizados con su estado. No incluye editar ni cancelar préstamos desde esta pantalla.
+- **Reglas de negocio:** RN-04
+
+**Criterios de aceptación (Gherkin):**
+
+```gherkin
+Escenario 1: Usuario con préstamos activos y finalizados
+  Dado que tengo al menos un préstamo activo y uno finalizado
+  Cuando ingreso a la sección "Mis préstamos"
+  Entonces veo ambos en la lista
+  Y cada uno aparece marcado con su estado
+
+Escenario 2: Usuario sin préstamos
+  Dado que nunca he solicitado un préstamo
+  Cuando ingreso a la sección "Mis préstamos"
+  Entonces el sistema muestra un mensaje indicando que no tengo préstamos registrados
+
+Escenario 3: Préstamo devuelto pasa a finalizado
+  Dado que tengo un préstamo activo y el encargado registra su devolución
+  Cuando ingreso a la sección "Mis préstamos"
+  Entonces ese préstamo aparece con estado "Finalizado"
+```
+
+- **NFR:** Global (RNF-02, RNF-04)
+- **Supuestos / Dependencias / Riesgos:** Las solicitudes y devoluciones se registraron correctamente (HU-07, HU-08).
+- **Datos de prueba:** Usuario con préstamos activos y finalizados; usuario sin ningún préstamo.
+- **DoR:** Historia redactada en formato Como / Quiero / Para, escenarios Gherkin definidos, dependencias identificadas y pantalla del prototipo asociada.
+- **DoD:** Todos los escenarios se cumplen al probar la historia, se respetan las reglas de negocio y los RNF asociados, y el equipo valida el resultado.
+
+## HU-06 — Administrar laboratorios y equipos
+
+- **ID / Épica:** HU-06 / Gestión de inventario
+- **Trazabilidad:** RU-06 / RF-06
+- **Historia:** Como encargado de laboratorio, quiero registrar, editar, eliminar y consultar los laboratorios y equipos, para mantener el inventario siempre actualizado.
+- **Contexto / Escenario:** Panel de inventario, con sesión iniciada como encargado.
+- **Valor de negocio / Outcome esperado:** Garantizar que la disponibilidad que ven los usuarios sea precisa.
+- **Alcance (incluye) / Out-of-scope:** Incluye registrar, modificar, eliminar y consultar laboratorios y equipos. No incluye la gestión de mantenimiento de los recursos.
+- **Reglas de negocio:** RN-06
+
+**Criterios de aceptación (Gherkin):**
+
+```gherkin
+Escenario 1: Registrar un nuevo recurso
+  Dado que he iniciado sesión como encargado
+  Cuando completo el formulario de un nuevo laboratorio o equipo y lo guardo
+  Entonces el recurso queda visible en el inventario con estado "Disponible"
+
+Escenario 2: Modificar un recurso existente
+  Dado que existe un recurso registrado en el inventario
+  Cuando modifico sus datos y guardo los cambios
+  Entonces el sistema muestra la información actualizada al consultarlo
+
+Escenario 3: Eliminar un recurso sin préstamos ni solicitudes
+  Dado que un recurso no tiene préstamos activos ni solicitudes pendientes o aprobadas
+  Cuando lo elimino desde el inventario
+  Entonces el recurso deja de aparecer en la consulta de disponibilidad
+
+Escenario 4: Intentar eliminar un recurso con préstamos o solicitudes vigentes
+  Dado que un recurso tiene un préstamo activo o una solicitud pendiente o aprobada
+  Cuando intento eliminarlo desde el inventario
+  Entonces el sistema no lo elimina
+  Y me informa que el recurso tiene préstamos o solicitudes vigentes
+```
+
+- **NFR:** RNF-02
+- **Supuestos / Dependencias / Riesgos:** El encargado tiene una cuenta con su rol asignado (HU-09, HU-10).
+- **Datos de prueba:** Crear, editar y eliminar un laboratorio de prueba; intentar eliminar un equipo con un préstamo activo.
+- **DoR:** Historia redactada en formato Como / Quiero / Para, escenarios Gherkin definidos, dependencias identificadas y pantalla del prototipo asociada.
+- **DoD:** Todos los escenarios se cumplen al probar la historia, se respetan las reglas de negocio y los RNF asociados, y el equipo valida el resultado.
+
+## HU-07 — Aprobar o rechazar solicitudes
+
+- **ID / Épica:** HU-07 / Gestión de préstamos
+- **Trazabilidad:** RU-07 / RF-07
+- **Historia:** Como encargado de laboratorio, quiero aprobar o rechazar las solicitudes pendientes desde un solo lugar, para tener claridad de quién usará cada recurso.
+- **Contexto / Escenario:** Panel de solicitudes pendientes del encargado.
+- **Valor de negocio / Outcome esperado:** Centralizar la decisión y evitar aprobaciones informales o duplicadas.
+- **Alcance (incluye) / Out-of-scope:** Incluye el cambio de estado de la solicitud (aprobar o rechazar). No incluye editar el contenido de la solicitud.
+- **Reglas de negocio:** RN-01, RN-02, RN-03
+
+**Criterios de aceptación (Gherkin):**
+
+```gherkin
+Escenario 1: Aprobar una solicitud pendiente
+  Dado que existe una solicitud con estado "Pendiente"
+  Cuando la reviso y la apruebo
+  Entonces su estado cambia a "Aprobada"
+  Y el solicitante recibe la notificación correspondiente
+
+Escenario 2: Rechazar una solicitud pendiente
+  Dado que existe una solicitud con estado "Pendiente"
+  Cuando la reviso y la rechazo
+  Entonces su estado cambia a "Rechazada"
+  Y el solicitante recibe la notificación correspondiente
+
+Escenario 3: Aprobar una solicitud que se cruza con otra ya aprobada
+  Dado que hay dos solicitudes pendientes para el mismo recurso en horarios que se cruzan y ya aprobé una de ellas
+  Cuando intento aprobar la otra
+  Entonces el sistema no permite la aprobación
+  Y me informa que el recurso ya está reservado en ese horario
+```
+
+- **NFR:** RNF-02
+- **Supuestos / Dependencias / Riesgos:** Existen solicitudes en estado "Pendiente" (HU02).
+- **Datos de prueba:** Dos solicitudes pendientes: una para aprobar y otra para rechazar.
+- **DoR:** Historia redactada en formato Como / Quiero / Para, escenarios Gherkin definidos, dependencias identificadas y pantalla del prototipo asociada.
+- **DoD:** Todos los escenarios se cumplen al probar la historia, se respetan las reglas de negocio y los RNF asociados, y el equipo valida el resultado.
