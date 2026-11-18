@@ -279,3 +279,117 @@ Escenario 3: Aprobar una solicitud que se cruza con otra ya aprobada
 - **Datos de prueba:** Dos solicitudes pendientes: una para aprobar y otra para rechazar.
 - **DoR:** Historia redactada en formato Como / Quiero / Para, escenarios Gherkin definidos, dependencias identificadas y pantalla del prototipo asociada.
 - **DoD:** Todos los escenarios se cumplen al probar la historia, se respetan las reglas de negocio y los RNF asociados, y el equipo valida el resultado.
+
+## HU-08 — Registrar la devolución de un recurso
+
+- **ID / Épica:** HU-08 / Gestión de préstamos
+- **Trazabilidad:** RU-08 / RF-08
+- **Historia:** Como encargado de laboratorio, quiero registrar cuándo se devuelve un equipo o se desocupa un laboratorio, para que vuelva a quedar disponible para otra persona.
+- **Contexto / Escenario:** Panel de préstamos activos del encargado.
+- **Valor de negocio / Outcome esperado:** Mantener actualizada la disponibilidad y evitar que un recurso quede bloqueado sin necesidad.
+- **Alcance (incluye) / Out-of-scope:** Incluye marcar la devolución de un préstamo activo. No incluye evaluar el estado físico del recurso devuelto.
+- **Reglas de negocio:** RN-02, RN-04
+
+**Criterios de aceptación (Gherkin):**
+
+```gherkin
+Escenario 1: Registrar la devolución de un préstamo activo
+  Dado que existe un préstamo con estado "Activo"
+  Cuando registro su devolución
+  Entonces el préstamo cambia a "Finalizado"
+  Y el recurso vuelve a aparecer como "Disponible"
+
+Escenario 2: Intentar devolver un préstamo ya finalizado
+  Dado que un préstamo ya tiene estado "Finalizado"
+  Cuando intento registrar su devolución nuevamente
+  Entonces el sistema no permite la acción
+  Y muestra un mensaje indicando que el recurso ya fue devuelto
+
+Escenario 3: Usuario sin rol de encargado
+  Dado que he iniciado sesión como estudiante o docente
+  Cuando intento registrar la devolución de un préstamo
+  Entonces el sistema deniega la acción
+  Y muestra un mensaje indicando que mi rol no tiene permiso
+```
+
+- **NFR:** RNF-02
+- **Supuestos / Dependencias / Riesgos:** El préstamo existe con estado "Activo", generado a partir de una solicitud aprobada (HU-07).
+- **Datos de prueba:** Un préstamo activo para devolver; un préstamo ya finalizado.
+- **DoR:** Historia redactada en formato Como / Quiero / Para, escenarios Gherkin definidos, dependencias identificadas y pantalla del prototipo asociada.
+- **DoD:** Todos los escenarios se cumplen al probar la historia, se respetan las reglas de negocio y los RNF asociados, y el equipo valida el resultado.
+
+## HU-09 — Iniciar sesión de forma segura
+
+- **ID / Épica:** HU-09 / Gestión de usuarios
+- **Trazabilidad:** RU-09 / RF-09
+- **Historia:** Como usuario del sistema (estudiante, docente o encargado), quiero ingresar con mi usuario y contraseña, para ver solo las funciones que corresponden a mi rol.
+- **Contexto / Escenario:** Pantalla de inicio de sesión, punto de entrada al sistema.
+- **Valor de negocio / Outcome esperado:** Garantizar un acceso seguro y diferenciado según el rol de cada usuario.
+- **Alcance (incluye) / Out-of-scope:** Incluye la validación de credenciales y el ingreso al panel del rol. No incluye la recuperación de contraseña.
+- **Reglas de negocio:** N/A
+
+**Criterios de aceptación (Gherkin):**
+
+```gherkin
+Escenario 1: Credenciales correctas
+  Dado que tengo una cuenta activa en el sistema
+  Cuando ingreso mi usuario y contraseña correctos
+  Entonces accedo al sistema
+  Y veo únicamente las funciones habilitadas para mi rol
+
+Escenario 2: Credenciales incorrectas
+  Dado que estoy en la pantalla de inicio de sesión
+  Cuando escribo un usuario o una contraseña incorrectos
+  Entonces el sistema deniega el acceso
+  Y muestra un mensaje de error claro
+
+Escenario 3: Campos vacíos
+  Dado que estoy en la pantalla de inicio de sesión
+  Cuando dejo el usuario o la contraseña sin diligenciar e intento ingresar
+  Entonces el sistema no permite el ingreso
+  Y me indica cuáles campos son obligatorios
+```
+
+- **NFR:** RNF-02
+- **Supuestos / Dependencias / Riesgos:** El usuario fue registrado previamente (HU-10).
+- **Datos de prueba:** Ingreso con credenciales correctas e incorrectas para cada uno de los tres roles.
+- **DoR:** Historia redactada en formato Como / Quiero / Para, escenarios Gherkin definidos, dependencias identificadas y pantalla del prototipo asociada.
+- **DoD:** Todos los escenarios se cumplen al probar la historia, se respetan las reglas de negocio y los RNF asociados, y el equipo valida el resultado.
+
+## HU-10 — Registrar y administrar usuarios
+
+- **ID / Épica:** HU-10 / Gestión de usuarios
+- **Trazabilidad:** RU-10 / RF-10
+- **Historia:** Como encargado de laboratorio, quiero registrar nuevas cuentas de estudiantes, docentes u otros encargados y asignarles un rol, para que cada persona tenga acceso a las funciones que le corresponden.
+- **Contexto / Escenario:** Panel de usuarios del encargado.
+- **Valor de negocio / Outcome esperado:** Controlar de forma centralizada quién accede al sistema y con qué permisos.
+- **Alcance (incluye) / Out-of-scope:** Incluye la creación de la cuenta y la asignación del rol. No incluye editar ni eliminar usuarios existentes (propuesto para el Release 2).
+- **Reglas de negocio:** RN-07
+
+**Criterios de aceptación (Gherkin):**
+
+```gherkin
+Escenario 1: Crear una cuenta con rol asignado
+  Dado que he iniciado sesión como encargado
+  Cuando completo el formulario de un nuevo usuario y le asigno un rol
+  Entonces la cuenta queda creada
+  Y el nuevo usuario puede iniciar sesión con los permisos de ese rol
+
+Escenario 2: Correo ya registrado
+  Dado que ya existe una cuenta registrada con un correo específico
+  Cuando intento crear un nuevo usuario con ese mismo correo
+  Entonces el sistema rechaza el registro
+  Y muestra un mensaje de correo duplicado
+
+Escenario 3: Formulario incompleto o sin rol
+  Dado que he iniciado sesión como encargado
+  Cuando intento guardar un usuario nuevo sin asignarle un rol o con campos obligatorios vacíos
+  Entonces el sistema no crea la cuenta
+  Y me indica qué datos faltan
+```
+
+- **NFR:** RNF-02
+- **Supuestos / Dependencias / Riesgos:** Existe al menos una cuenta de encargado para crear las demás.
+- **Datos de prueba:** Registrar un usuario con cada uno de los tres roles; intentar registrar un correo repetido.
+- **DoR:** Historia redactada en formato Como / Quiero / Para, escenarios Gherkin definidos, dependencias identificadas y pantalla del prototipo asociada.
+- **DoD:** Todos los escenarios se cumplen al probar la historia, se respetan las reglas de negocio y los RNF asociados, y el equipo valida el resultado.
