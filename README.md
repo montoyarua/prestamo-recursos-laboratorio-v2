@@ -36,6 +36,25 @@ de usuario (HU-01 a HU-10) con sus escenarios alternos y los cinco patrones GoF 
 
 Variables opcionales: `DB_URL`, `DB_USER`, `DB_PASSWORD`, `PORT`, `DATOS_DEMO=false`.
 
+### Ejecutar en Windows
+
+1. **Requisitos:** Tener instalados **JDK 21 o superior** (probado en Windows con JDK 23.0.1), **Apache Maven 3.9+** (con `JAVA_HOME` y la carpeta `bin` de Maven registrados en el `Path` del sistema) y **Docker Desktop** con el motor activo.
+2. **Clonar el repositorio:**
+   ```powershell
+   git clone https://github.com/montoyarua/prestamo-recursos-laboratorio-v2.git
+   cd prestamo-recursos-laboratorio-v2
+   ```
+3. **Levantar la base de datos PostgreSQL:**
+   ```powershell
+   docker compose up -d
+   ```
+4. **Arrancar la aplicación:** Hacer doble clic sobre `ejecutar.bat` en la raíz del proyecto o ejecutarlo desde PowerShell / CMD:
+   ```powershell
+   .\ejecutar.bat
+   ```
+   *(Si se ejecuta desde Git Bash, usar `cmd //c ejecutar.bat`).*
+5. **Verificar acceso:** Abrir `http://localhost:8080` en el navegador e iniciar sesión con una cuenta de demostración (`estudiante@itm.edu.co` / `Estudiante123`, `docente@itm.edu.co` / `Docente123` o `encargado@itm.edu.co` / `Encargado123`). Para detener el servidor, presionar `Ctrl + C` en la consola.
+
 ### Recompilar la interfaz React
 ```
 cd frontend && npm install && npm run build     # deja la salida en backend/src/main/resources/static
